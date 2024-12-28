@@ -1,6 +1,6 @@
 #### 小A和小G的代码基地
 <div style="width: 200px;">
-![小程序码](./src/static/image/miniProgramCode.jpg)
+![小程序码](https://github.com/CarefreeYong/AlgoGame/blob/1.0.0/src/static/image/miniProgramCode.jpg?raw=true)
 </div>
 
 #### AlgoGame
