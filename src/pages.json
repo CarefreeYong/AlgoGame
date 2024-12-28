@@ -1,0 +1,106 @@
+{
+    "easycom": {
+        "custom": {
+            "^uni-(.*)": "@dcloudio/uni-ui/lib/uni-$1/uni-$1.vue"
+        }
+    },
+    "pages": [ // pages 数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
+        {
+            "path": "pages/algo/index",
+            "style": {
+                "navigationBarTitleText": "Algo"
+            }
+        },
+        {
+            "path": "pages/algo/randomMove",
+            "style": {
+                "navigationBarTitleText": "随机移动"
+            }
+        },
+        {
+            "path": "pages/algo/controlMove",
+            "style": {
+                "navigationBarTitleText": "控制移动"
+            }
+        },
+        {
+            "path": "pages/algo/gridCollisionCheck",
+            "style": {
+                "navigationBarTitleText": "网格碰撞检测"
+            }
+        },
+        {
+            "path": "pages/algo/randomBarrier",
+            "style": {
+                "navigationBarTitleText": "随机障碍物"
+            }
+        },
+        {
+            "path": "pages/algo/randomMaze",
+            "style": {
+                "navigationBarTitleText": "随机迷宫"
+            }
+        },
+        {
+            "path": "pages/algo/playMaze",
+            "style": {
+                "navigationBarTitleText": "走迷宫"
+            }
+        },
+        {
+            "path": "pages/algo/depthFirstSearch",
+            "style": {
+                "navigationBarTitleText": "深度优先搜索"
+            }
+        },
+        {
+            "path": "pages/algo/breadthFirstSearch",
+            "style": {
+                "navigationBarTitleText": "广度优先搜索"
+            }
+        },
+        /* {
+            "path": "pages/algo/bestFirstSearch",
+            "style": {
+                "navigationBarTitleText": "最佳优先搜索"
+            }
+        },
+        {
+            "path": "pages/algo/AStarSearch",
+            "style": {
+                "navigationBarTitleText": "A* 搜索"
+            }
+        }, */
+        {
+            "path": "pages/game/index",
+            "style": {
+                "navigationBarTitleText": "Game"
+            }
+        }
+    ],
+    "globalStyle": {
+        "navigationBarTitleText": "小A和小G的代码基地",
+        "navigationBarTextStyle": "black",
+        "navigationBarBackgroundColor": "#f8f8f8",
+        "backgroundColor": "#f8f8f8"
+    },
+    "tabBar": {
+        "color": "#333",
+        "selectedColor": "#007aff",
+        "borderStyle": "black",
+        "list": [
+            {
+                "pagePath": "pages/algo/index",
+                "iconPath": "static/image/icon-algo.png",
+                "selectedIconPath": "static/image/icon-algo-selected.png",
+                "text": "Algo"
+            },
+            {
+                "pagePath": "pages/game/index",
+                "iconPath": "static/image/icon-game.png",
+                "selectedIconPath": "static/image/icon-game-selected.png",
+                "text": "Game"
+            }
+        ]
+    }
+}

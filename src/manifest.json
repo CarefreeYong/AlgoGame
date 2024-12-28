@@ -1,0 +1,56 @@
+{
+    "name": "小A和小G的代码基地",
+    "appid": "",
+    "description": "算法可视化与应用",
+    "versionName": "1.0.0",
+    "versionCode": "100",
+    "vueVersion": "3",
+    "debug": true,
+    "uniStatistics": {
+        "enable": false,
+        "version": "2"
+    },
+    /* App 特有配置 */
+    "app-plus": {},
+    /* H5 特有配置 */
+    "h5": {},
+    /* 快应用特有配置 */
+    "quickapp": {},
+    /* 微信小程序特有配置 */
+    "mp-weixin": {
+        "appid": "",
+        "setting": {
+            "condition": false,
+            "es6": false,
+            "enhance": false,
+            "postcss": true,
+            "minified": true,
+            "minifyWXSS": true,
+            "minifyWXML": true,
+            "swc": false,
+            "uglifyFileName": true,
+            "ignoreUploadUnusedFiles": true,
+            "autoAudits": false,
+            "urlCheck": true,
+            "compileHotReLoad": true,
+            "preloadBackgroundData": false,
+            "lazyloadPlaceholderEnable": false,
+            "useStaticServer": false,
+            "bigPackageSizeSupport": true,
+            "skylineRenderEnable": false
+        },
+        "lazyCodeLoading": "requiredComponents"
+    },
+    /* 支付宝小程序特有配置 */
+    "mp-alipay": {},
+    /* 百度小程序特有配置 */
+    "mp-baidu": {},
+    /* 抖音小程序特有配置 */
+    "mp-toutiao": {},
+    /* 飞书小程序特有配置 */
+    "mp-lark": {},
+    /* QQ 小程序特有配置 */
+    "mp-qq": {},
+    /* 快手小程序特有配置 */
+    "mp-kuaishou": {}
+}

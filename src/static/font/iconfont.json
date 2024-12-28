@@ -1,0 +1,58 @@
+{
+  "id": "4736023",
+  "name": "AlgoGame",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "6874514",
+      "name": "手柄上",
+      "font_class": "gamepadTop",
+      "unicode": "e70f",
+      "unicode_decimal": 59151
+    },
+    {
+      "icon_id": "6874515",
+      "name": "手柄下",
+      "font_class": "gamepadBottom",
+      "unicode": "e710",
+      "unicode_decimal": 59152
+    },
+    {
+      "icon_id": "6874516",
+      "name": "手柄右",
+      "font_class": "gamepadRight",
+      "unicode": "e711",
+      "unicode_decimal": 59153
+    },
+    {
+      "icon_id": "6874517",
+      "name": "手柄左",
+      "font_class": "gamepadLeft",
+      "unicode": "e712",
+      "unicode_decimal": 59154
+    },
+    {
+      "icon_id": "1159875",
+      "name": "控制",
+      "font_class": "control",
+      "unicode": "e60b",
+      "unicode_decimal": 58891
+    },
+    {
+      "icon_id": "586740",
+      "name": "Algo",
+      "font_class": "algo",
+      "unicode": "e69a",
+      "unicode_decimal": 59034
+    },
+    {
+      "icon_id": "3868282",
+      "name": "Game",
+      "font_class": "game",
+      "unicode": "eb67",
+      "unicode_decimal": 60263
+    }
+  ]
+}
