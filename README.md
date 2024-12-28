@@ -1,7 +1,9 @@
 #### 小A和小G的代码基地
-<div style="width: 200px;">
-![小程序码](https://github.com/CarefreeYong/AlgoGame/blob/1.0.0/src/static/image/miniProgramCode.jpg?raw=true)
-</div>
+<img
+    width="200"
+    alt="小程序码"
+    src="https://github.com/CarefreeYong/AlgoGame/blob/1.0.0/src/static/image/miniProgramCode.jpg"
+/>
 
 #### AlgoGame
 一个基于 UniApp 框架开发的算法可视化与应用的项目。
