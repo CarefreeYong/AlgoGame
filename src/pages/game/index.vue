@@ -2,7 +2,7 @@
     <view class="content">
         <image
             class="logo"
-            src="@/static/image/logo.png"
+            :src="accountInfo.logo"
         />
         <view class="text__area">
             <text class="title">
@@ -13,6 +13,7 @@
 </template>
 
 <script lang="tsx" setup>
+import { accountInfo } from '@/data'
 </script>
 
 <style lang="scss" scoped>

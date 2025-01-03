@@ -26,6 +26,7 @@ export default tsLint.config(
             },
             globals: {
                 uni: 'readonly',
+                getCurrentPages: 'readonly',
             },
         },
         rules: {
