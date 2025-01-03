@@ -91,14 +91,14 @@
         "list": [
             {
                 "pagePath": "pages/algo/index",
-                "iconPath": "static/image/icon-algo.png",
-                "selectedIconPath": "static/image/icon-algo-selected.png",
+                "iconPath": "static/images/icon-algo.png",
+                "selectedIconPath": "static/images/icon-algo-selected.png",
                 "text": "Algo"
             },
             {
                 "pagePath": "pages/game/index",
-                "iconPath": "static/image/icon-game.png",
-                "selectedIconPath": "static/image/icon-game-selected.png",
+                "iconPath": "static/images/icon-game.png",
+                "selectedIconPath": "static/images/icon-game-selected.png",
                 "text": "Game"
             }
         ]

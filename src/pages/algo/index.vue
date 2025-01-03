@@ -1,7 +1,7 @@
 <template>
     <view class="pageList">
         <navigator
-            v-for="{ path, name } in pageList"
+            v-for="{ path, name } in algoPages"
             :key="path"
             class="pageItem"
             :url="path"
@@ -12,24 +12,7 @@
 </template>
 
 <script lang="tsx" setup>
-import { computed } from 'vue'
-import { pages } from '@/pages.json'
-
-interface PageItem {
-    path: string,
-    name: string,
-}
-
-const pageList = computed<PageItem[]>(
-    () => pages.flatMap(
-        ({ path, style: { navigationBarTitleText } }) => path.includes('algo') && !path.includes('index')
-            ? {
-                path: `/${path}`,
-                name: navigationBarTitleText,
-            }
-            : [],
-    ),
-)
+import { algoPages } from '@/data'
 </script>
 
 <style lang="scss" scoped>

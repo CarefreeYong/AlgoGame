@@ -2,7 +2,7 @@
 <img
     width="200"
     alt="小程序码"
-    src="https://github.com/CarefreeYong/AlgoGame/blob/1.0.0/src/static/image/miniProgramCode.jpg"
+    src="https://raw.githubusercontent.com/CarefreeYong/AlgoGame/refs/heads/main/src/static/images/miniProgramCode.jpg"
 />
 
 #### AlgoGame

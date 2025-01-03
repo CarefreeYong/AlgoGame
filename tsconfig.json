@@ -13,7 +13,8 @@
             "DOM"
         ],
         "types": [
-            "@dcloudio/types"
+            "@dcloudio/types",
+            "vue"
         ],
         "importsNotUsedAsValues": "remove",
         "preserveValueImports": false
