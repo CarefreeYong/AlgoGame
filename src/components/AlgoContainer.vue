@@ -1,3 +1,43 @@
+<script lang="tsx" setup>
+import { ref, onMounted } from 'vue'
+
+let countdownIntervalId: NodeJS.Timeout | void = void 0
+
+const toggleDescription = ref<number | '?'>(3)
+const descriptionUnfolded = ref<boolean>(true)
+const controlUnfolded = ref<boolean>(true)
+
+const toggle = (type: 'Description' | 'Control'): void => {
+    switch (type) {
+        case 'Description': {
+            countdownIntervalId && (
+                countdownIntervalId = clearInterval(countdownIntervalId),
+                toggleDescription.value = '?'
+            )
+            descriptionUnfolded.value = !descriptionUnfolded.value
+            break
+        }
+        case 'Control': {
+            controlUnfolded.value = !controlUnfolded.value
+            break
+        }
+    }
+}
+
+onMounted(async () => {
+    await new Promise<void>((resolve) => setTimeout(resolve, 500)) // 500ms 后再往下执行
+
+    countdownIntervalId = setInterval(() => { // 3s 后自动收起 description
+        if (toggleDescription.value === 0) {
+            countdownIntervalId = clearInterval(countdownIntervalId as NodeJS.Timeout)
+            toggleDescription.value = '?'
+            descriptionUnfolded.value = false
+            return
+        }
+        (toggleDescription.value as number)--
+    }, 1000)
+})
+</script>
 
 <template>
     <view class="algoContainer">
@@ -40,49 +80,6 @@
         </view>
     </view>
 </template>
-
-<script lang="tsx" setup>
-import { ref, onMounted } from 'vue'
-
-let countdownIntervalId = 0
-
-const toggleDescription = ref<number | '?'>(3)
-const descriptionUnfolded = ref<boolean>(true)
-const controlUnfolded = ref<boolean>(true)
-
-const toggle = (type: 'Description' | 'Control'): void => {
-    switch (type) {
-        case 'Description': {
-            countdownIntervalId && (
-                clearInterval(countdownIntervalId),
-                countdownIntervalId = 0,
-                toggleDescription.value = '?'
-            )
-            descriptionUnfolded.value = !descriptionUnfolded.value
-            break
-        }
-        case 'Control': {
-            controlUnfolded.value = !controlUnfolded.value
-            break
-        }
-    }
-}
-
-onMounted(async () => {
-    await new Promise((resolve) => setTimeout(resolve, 500)) // 500ms 后再往下执行
-
-    countdownIntervalId = setInterval(() => { // 3s 后自动收起 description
-        if (toggleDescription.value === 0) {
-            clearInterval(countdownIntervalId)
-            countdownIntervalId = 0
-            toggleDescription.value = '?'
-            descriptionUnfolded.value = false
-            return
-        }
-        (toggleDescription.value as number)--
-    }, 1000)
-})
-</script>
 
 <style lang="scss" scoped>
 .algoContainer {

@@ -1,4 +1,4 @@
-import { Option } from '@/types'
+import type { Option } from '@/types'
 import { name as appName } from '@/manifest.json'
 import { pages as unstablePages } from '@/pages.json'
 import appLogo from '@/static/images/logo.png'

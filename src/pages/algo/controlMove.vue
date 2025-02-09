@@ -1,3 +1,70 @@
+<script lang="tsx" setup>
+import type { Size, Position, Grid as UnstableGrid, Player } from '@/types'
+import { Direction, GridType } from '@/types'
+import { ref, onBeforeMount, onMounted } from 'vue'
+import { getBoundingClientRectBySelector } from '@/utility'
+import AlgoContainer from '@/components/AlgoContainer.vue'
+
+type Grid = Pick<UnstableGrid, 'position' | 'type'>
+
+const mapSize: Size = [21, 21] // 地图尺寸，单位：网格数量
+const playerPosition: Position = [Math.floor(mapSize[0] / 2), Math.floor(mapSize[1] / 2)]
+let moveIntervalId: NodeJS.Timeout | void = void 0
+
+const map = ref<Grid[][]>(Array.from(
+    { length: mapSize[1] },
+    (_grids, y) => Array.from(
+        { length: mapSize[0] },
+        (_grid, x) => ({
+            position: [x, y],
+            type: GridType.Space,
+        }),
+    ),
+))
+const gridSize = ref<Size>([0, 0]) // 网格尺寸，单位：px，根据屏幕分辨率动态计算
+const player = ref<Player>({ id: 'Player', position: playerPosition, direction: Direction.Top }) // 玩家
+
+const moveStart = (direction: Direction): void => {
+    if (moveIntervalId) return
+    moveIntervalId = setInterval(() => {
+        uni.vibrateShort() // 手机短震动
+        const oldPosition = player.value.position
+        const newPosition = [
+            player.value.position, // 停留
+            [player.value.position[0], Math.max(0, player.value.position[1] - 1)], // 上
+            [Math.min(map.value[0]!.length - 1, player.value.position[0] + 1), player.value.position[1]], // 右
+            [player.value.position[0], Math.min(map.value.length - 1, player.value.position[1] + 1)], // 下
+            [Math.max(0, player.value.position[0] - 1), player.value.position[1]], // 左
+        ][direction] as Position
+        String(newPosition) !== String(oldPosition) && (player.value.position = newPosition)
+        player.value.direction = direction
+    }, 50)
+}
+
+const moveEnd = (): void => {
+    moveIntervalId = clearInterval(moveIntervalId as NodeJS.Timeout)
+}
+
+const reset = (initialize: boolean | MouseEvent): void => {
+    if (initialize !== true) {
+        moveIntervalId = clearInterval(moveIntervalId as NodeJS.Timeout)
+    }
+    player.value.position = playerPosition
+    player.value.direction = Direction.Top
+}
+
+onBeforeMount(() => {
+    // 初始化地图
+    reset(true)
+})
+
+onMounted(async () => {
+    // 根据屏幕分辨率动态设置 gridSize
+    const mapRect = await getBoundingClientRectBySelector('#mapContainer')
+    mapRect && (gridSize.value = [Math.floor(mapRect.width / map.value[0]!.length) - 1, Math.floor(mapRect.width / map.value.length) - 1]) // 这里统一取宽度进行计算，使 grid 为正方形
+})
+</script>
+
 <template>
     <AlgoContainer>
         <template #description>
@@ -27,7 +94,7 @@
                         v-for="({ type }, x) in grids"
                         :key="`mapGrid-${x}`"
                         :class="{
-                            'mapGrid': true,
+                            mapGrid: true,
                             [`mapGrid--player--${['none', 'top', 'right', 'bottom', 'left'][player.direction]}`]: String([x, y]) === String(player.position),
                         }"
                         :style="{
@@ -92,74 +159,6 @@
     </AlgoContainer>
 </template>
 
-<script lang="tsx" setup>
-import { Size, Position, Direction, GridType, Grid as UnstableGrid, Player } from '@/types'
-import { ref, onBeforeMount, onMounted } from 'vue'
-import { getBoundingClientRectBySelector } from '@/utility'
-import AlgoContainer from '@/components/AlgoContainer.vue'
-
-type Grid = Pick<UnstableGrid, 'position' | 'type'>
-
-const mapSize: Size = [21, 21] // 地图尺寸，单位：网格数量
-const playerPosition: Position = [Math.floor(mapSize[0] / 2), Math.floor(mapSize[1] / 2)]
-let moveIntervalId: number = 0
-
-const map = ref<Grid[][]>(
-    Array(mapSize[1]).fill(null).map(
-        (grids, y) => Array(mapSize[0]).fill(null).map(
-            (grid, x) => ({
-                position: [x, y],
-                type: GridType.Space,
-            }),
-        ),
-    ),
-)
-const gridSize = ref<Size>([0, 0]) // 网格尺寸，单位：px，根据屏幕分辨率动态计算
-const player = ref<Player>({ id: 'Player', position: playerPosition, direction: Direction.Top }) // 玩家
-
-const moveStart = (direction: Direction): void => {
-    if (moveIntervalId) return
-    moveIntervalId = setInterval(() => {
-        uni.vibrateShort() // 手机短震动
-        const oldPosition = player.value.position
-        const newPosition = [
-            player.value.position, // 停留
-            [player.value.position[0], Math.max(0, player.value.position[1] - 1)], // 上
-            [Math.min(map.value[0].length - 1, player.value.position[0] + 1), player.value.position[1]], // 右
-            [player.value.position[0], Math.min(map.value.length - 1, player.value.position[1] + 1)], // 下
-            [Math.max(0, player.value.position[0] - 1), player.value.position[1]], // 左
-        ][direction] as Position
-        String(newPosition) !== String(oldPosition) && (player.value.position = newPosition)
-        player.value.direction = direction
-    }, 50)
-}
-
-const moveEnd = (): void => {
-    clearInterval(moveIntervalId)
-    moveIntervalId = 0
-}
-
-const reset = (initialize: boolean | MouseEvent): void => {
-    if (initialize !== true) {
-        clearInterval(moveIntervalId)
-        moveIntervalId = 0
-    }
-    player.value.position = playerPosition
-    player.value.direction = Direction.Top
-}
-
-onBeforeMount(() => {
-    // 初始化地图
-    reset(true)
-})
-
-onMounted(async () => {
-    // 根据屏幕分辨率动态设置 gridSize
-    const mapRect = await getBoundingClientRectBySelector('#mapContainer')
-    mapRect && (gridSize.value = [Math.floor(mapRect.width / map.value[0].length) - 1, Math.floor(mapRect.width / map.value.length) - 1]) // 这里统一取宽度进行计算，使 grid 为正方形
-})
-</script>
-
 <style lang="scss" scoped>
 .detail {
     display: flex;
@@ -211,7 +210,7 @@ onMounted(async () => {
     &.mapGrid--player--right::before,
     &.mapGrid--player--bottom::before,
     &.mapGrid--player--left::before {
-        content: "";
+        content: '';
         display: block;
         width: 100%;
         height: 100%;
@@ -265,7 +264,7 @@ onMounted(async () => {
     border-radius: 50%;
     box-shadow: 0rpx 0rpx 20rpx 0rpx rgba(0, 0, 0, 0.2);
     &:active {
-        color: rgba(0, 0,0, .6);
+        color: rgba(0, 0, 0, 0.6);
         background-color: #dedede;
         box-shadow: 0rpx 0rpx 80rpx 20rpx rgba(0, 0, 0, 0.2);
     }

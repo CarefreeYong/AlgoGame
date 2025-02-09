@@ -1,34 +1,5 @@
-<template>
-    <slot :toggle="toggle" />
-    <view
-        v-if="options.length && menusVisible"
-        :class="{
-            menus: true,
-            [`menus--${placement}`]: true,
-        }"
-        :style="{
-            top: `${menusPosition[1]}px`,
-            left: `${menusPosition[0]}px`,
-        }"
-    >
-        <view class="menus__content">
-            <view
-                v-for="{ value: innerValue, label } in options"
-                :key="innerValue"
-                :class="{
-                    menu: true,
-                    'menu--active': innerValue === value,
-                }"
-                @click.stop="emits('change', innerValue); menusVisible = false"
-            >
-                {{ label }}
-            </view>
-        </view>
-    </view>
-</template>
-
 <script lang="tsx" setup>
-import { Option, Position } from '@/types'
+import type { Option, Position } from '@/types'
 import { ref, toRefs } from 'vue'
 import { getBoundingClientRectBySelector } from '@/utility'
 import useBodyClick from '@/hooks/useBodyClick'
@@ -84,6 +55,35 @@ useBodyClick(() => {
     menusVisible.value = false
 })
 </script>
+
+<template>
+    <slot :toggle="toggle" />
+    <view
+        v-if="options.length && menusVisible"
+        :class="{
+            menus: true,
+            [`menus--${placement}`]: true,
+        }"
+        :style="{
+            top: `${menusPosition[1]}px`,
+            left: `${menusPosition[0]}px`,
+        }"
+    >
+        <view class="menus__content">
+            <view
+                v-for="{ value: innerValue, label } in options"
+                :key="innerValue"
+                :class="{
+                    menu: true,
+                    'menu--active': innerValue === value,
+                }"
+                @click.stop="emits('change', innerValue); menusVisible = false"
+            >
+                {{ label }}
+            </view>
+        </view>
+    </view>
+</template>
 
 <style lang="scss" scoped>
 .menus {
@@ -146,7 +146,7 @@ useBodyClick(() => {
         }
     }
     &::before {
-        content: "";
+        content: '';
         position: absolute;
         border: 10rpx solid transparent;
     }

@@ -1,3 +1,7 @@
+<script lang="tsx" setup>
+import { algoPages } from '@/data'
+</script>
+
 <template>
     <view class="pageList">
         <navigator
@@ -10,10 +14,6 @@
         </navigator>
     </view>
 </template>
-
-<script lang="tsx" setup>
-import { algoPages } from '@/data'
-</script>
 
 <style lang="scss" scoped>
 .pageList {

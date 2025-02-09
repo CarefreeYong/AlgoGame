@@ -1,12 +1,13 @@
-import { Position, Direction, RotationDirection } from '@/types'
+import type { Position, RotationDirection } from '@/types'
+import { Direction } from '@/types'
 
 // 根据 id 获取元素的矩形信息
 export const getBoundingClientRectBySelector = async (selector: string): Promise<DOMRect | null> => {
     try {
         const { length, [length - 1]: currentPage } = getCurrentPages()
-        const selectorQuery = uni.createSelectorQuery().in(currentPage.$vm)
+        const selectorQuery = uni.createSelectorQuery().in(currentPage!.$vm)
         const nodesRef = selectorQuery.select(selector)
-        const [rect]: [DOMRect] = await new Promise((resolve) => nodesRef.boundingClientRect().exec(resolve))
+        const [rect] = await new Promise<[DOMRect]>((resolve) => nodesRef.boundingClientRect().exec(resolve))
         return rect
     } catch {
         return null
@@ -48,12 +49,13 @@ export const getRelativeDirection = (rotationDirection: RotationDirection, refer
                     return horizontalDirection
                 }
                 case Direction.Top: { // [Direction.None, 右上 => 上, 右上 => 右]
-                    return [Direction.None, verticalDirection, horizontalDirection][rotationDirection]
+                    return [Direction.None, verticalDirection, horizontalDirection][rotationDirection] as Direction
                 }
                 case Direction.Bottom: { // [Direction.None, 右下 => 右, 右下 => 下]
-                    return [Direction.None, horizontalDirection, verticalDirection][rotationDirection]
+                    return [Direction.None, horizontalDirection, verticalDirection][rotationDirection] as Direction
                 }
             }
+            // @ts-expect-error 避免 no-fallthrough 报错
             break
         }
         case Direction.Left: {
@@ -62,24 +64,25 @@ export const getRelativeDirection = (rotationDirection: RotationDirection, refer
                     return horizontalDirection
                 }
                 case Direction.Top: { // [Direction.None, 左上 => 左, 左上 => 上]
-                    return [Direction.None, horizontalDirection, verticalDirection][rotationDirection]
+                    return [Direction.None, horizontalDirection, verticalDirection][rotationDirection] as Direction
                 }
                 case Direction.Bottom: { // [Direction.None, 左下 => 下, 左下 => 左]
-                    return [Direction.None, verticalDirection, horizontalDirection][rotationDirection]
+                    return [Direction.None, verticalDirection, horizontalDirection][rotationDirection] as Direction
                 }
             }
+            // @ts-expect-error 避免 no-fallthrough 报错
             break
         }
     }
 }
 
 // 使用 Fisher-Yates 洗牌算法打乱数组
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const shuffleArray = (arr: any[]): any[] => {
+export const shuffleArray = <T>(arr: T): T => {
+    if (!Array.isArray(arr)) return arr
     const shuffledArr = [...arr]
     for (let i = shuffledArr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1))
         ;[shuffledArr[i], shuffledArr[j]] = [shuffledArr[j], shuffledArr[i]]
     }
-    return shuffledArr
+    return shuffledArr as T
 }

@@ -1,111 +1,6 @@
-<template>
-    <AlgoContainer>
-        <template #description>
-            <view class="detail">
-                <view
-                    class="detail__row"
-                    :style="{
-                        justifyContent: 'space-evenly',
-                    }"
-                >
-                    <view class="legend legend--normal">
-                        <icon />
-                        <text>
-                            {{ '正常' }}
-                        </text>
-                    </view>
-                    <view class="legend legend--collision">
-                        <icon />
-                        <text>
-                            {{ '碰撞' }}
-                        </text>
-                    </view>
-                </view>
-            </view>
-        </template>
-
-        <view
-            id="mapContainer"
-            class="mapContainer"
-        >
-            <view class="map">
-                <view
-                    v-for="(grids, y) in map"
-                    :key="`mapGrids-${y}`"
-                    class="mapGrids"
-                >
-                    <view
-                        v-for="({ type, count }, x) in grids"
-                        :key="`mapGrid-${x}`"
-                        :class="{
-                            'mapGrid': true,
-                            'mapGrid--mMonster': count > 0,
-                            'mapGrid--mMonster--collision': count > 1,
-                        }"
-                        :style="{
-                            width: `${gridSize[0]}px`,
-                            height: `${gridSize[1]}px`,
-                            ...(type === GridType.Barrier && { backgroundColor: '#333' }),
-                        }"
-                    />
-                </view>
-            </view>
-        </view>
-
-        <template #control>
-            <view
-                class="buttons"
-                :style="{
-                    justifyContent: 'space-between',
-                }"
-            >
-                <button
-                    size="mini"
-                    :type="('default' as 'button')"
-                    @click="reset"
-                >
-                    {{ '重置' }}
-                </button>
-                <Dropdown
-                    :id="DropdownId"
-                    v-slot="{ toggle }"
-                    placement="top"
-                    :value="speed"
-                    :options="speeds"
-                    @change="changeSpeed"
-                >
-                    <button
-                        size="mini"
-                        :type="('default' as 'button')"
-                        :style="{ display: 'block' }"
-                        @click.stop="toggle"
-                    >
-                        {{ `倍速（${speeds.find(({ value }) => value === speed)?.label}）` }}
-                    </button>
-                </Dropdown>
-                <button
-                    v-if="!started"
-                    size="mini"
-                    :type="('primary' as 'button')"
-                    @click="start"
-                >
-                    {{ typeof started === 'boolean' ? '继续' : '开始' }}
-                </button>
-                <button
-                    v-if="started"
-                    size="mini"
-                    :type="('primary' as 'button')"
-                    @click="pause"
-                >
-                    {{ '暂停' }}
-                </button>
-            </view>
-        </template>
-    </AlgoContainer>
-</template>
-
 <script lang="tsx" setup>
-import { Option, Size, Position, Direction, GridType, Grid as UnstableGrid, ModelType, MMonster } from '@/types'
+import type { Option, Size, Position, Grid as UnstableGrid, MMonster } from '@/types'
+import { Direction, GridType, ModelType } from '@/types'
 import { ref, computed, onBeforeMount, onMounted } from 'vue'
 import { speeds } from '@/data'
 import { getBoundingClientRectBySelector, getRandomString } from '@/utility'
@@ -114,9 +9,9 @@ import Dropdown from '@/components/Dropdown.vue'
 
 type Grid = Required<Pick<UnstableGrid, 'position' | 'type' | 'count'>>
 
-const DropdownId = `Dropdown-${getRandomString()}`
+const DropdownId: string = `Dropdown-${getRandomString()}`
 const mapSize: Size = [21, 21] // 地图尺寸，单位：网格数量
-const mMonsterPositionMap: Map<MMonster['id'], Position> = new Map([
+const mMonsterPositionMap = new Map<MMonster['id'], Position>([
     ['I', [3, 3]],
     ['J', [7, 4]],
     ['L', [12, 4]],
@@ -189,24 +84,24 @@ const mMonsters: MMonster[] = [
         position: mMonsterPositionMap.get('Z')!,
         direction: Direction.None,
         model: [
-            [ModelType.Solid, ModelType.Solid,ModelType.Hollow],
+            [ModelType.Solid, ModelType.Solid, ModelType.Hollow],
             [ModelType.Hollow, ModelType.Solid, ModelType.Solid],
         ],
     },
 ]
-let moveIntervalId: number = 0
+let moveIntervalId: NodeJS.Timeout | void = void 0
 
-const map = ref<Grid[][]>(
-    Array(mapSize[1]).fill(null).map(
-        (grids, y) => Array(mapSize[0]).fill(null).map(
-            (grid, x) => ({
-                position: [x, y],
-                type: GridType.Space,
-                count: 0,
-            }),
-        ),
+const map = ref<Grid[][]>(Array.from(
+    { length: mapSize[1] },
+    (_grids, y) => Array.from(
+        { length: mapSize[0] },
+        (_grid, x) => ({
+            position: [x, y],
+            type: GridType.Space,
+            count: 0,
+        }),
     ),
-)
+))
 const gridSize = ref<Size>([0, 0]) // 网格尺寸，单位：px，根据屏幕分辨率动态计算
 const speed = ref<number>(1)
 const started = ref<boolean | null>(null)
@@ -220,7 +115,7 @@ const move = (): void => {
             const newPosition = [
                 mMonster.position, // 停留
                 [mMonster.position[0], Math.max(0, mMonster.position[1] - 1)], // 上
-                [Math.min(map.value[0].length - mMonster.model[0].length, mMonster.position[0] + 1), mMonster.position[1]], // 右
+                [Math.min(map.value[0]!.length - mMonster.model[0]!.length, mMonster.position[0] + 1), mMonster.position[1]], // 右
                 [mMonster.position[0], Math.min(map.value.length - mMonster.model.length, mMonster.position[1] + 1)], // 下
                 [Math.max(0, mMonster.position[0] - 1), mMonster.position[1]], // 左
             ][direction] as Position
@@ -228,12 +123,12 @@ const move = (): void => {
                 mMonster.position = newPosition,
                 mMonster.model.forEach((modelTypes, y) => { // 更新怪物旧位置对应网格的计数
                     modelTypes.forEach((modelType, x) => {
-                        modelType && map.value[oldPosition[1] + y][oldPosition[0] + x].count--
+                        modelType && map.value[oldPosition[1] + y]![oldPosition[0] + x]!.count--
                     })
                 }),
                 mMonster.model.forEach((modelTypes, y) => { // 更新怪物新位置对应网格的计数
                     modelTypes.forEach((modelType, x) => {
-                        modelType && map.value[newPosition[1] + y][newPosition[0] + x].count++
+                        modelType && map.value[newPosition[1] + y]![newPosition[0] + x]!.count++
                     })
                 })
             )
@@ -244,8 +139,7 @@ const move = (): void => {
 
 const reset = (initialize: boolean | MouseEvent): void => {
     if (initialize !== true) {
-        clearInterval(moveIntervalId)
-        moveIntervalId = 0
+        moveIntervalId = clearInterval(moveIntervalId as NodeJS.Timeout)
         map.value.forEach((grids) => grids.forEach((grid) => (grid.count = GridType.Space)))
         speed.value = 1
         started.value = null
@@ -255,7 +149,7 @@ const reset = (initialize: boolean | MouseEvent): void => {
         mMonster.direction = Direction.None
         mMonster.model.forEach((modelTypes, y) => {
             modelTypes.forEach((modelType, x) => {
-                modelType && map.value[mMonster.position[1] + y][mMonster.position[0] + x].count++
+                modelType && map.value[mMonster.position[1] + y]![mMonster.position[0] + x]!.count++
             })
         })
     })
@@ -263,8 +157,7 @@ const reset = (initialize: boolean | MouseEvent): void => {
 
 const changeSpeed = (value: Option['value']): void => {
     if (value === speed.value) return
-    clearInterval(moveIntervalId)
-    moveIntervalId = 0
+    moveIntervalId = clearInterval(moveIntervalId as NodeJS.Timeout)
     speed.value = value as number
     started.value && move()
 }
@@ -275,8 +168,7 @@ const start = (): void => {
 }
 
 const pause = (): void => {
-    clearInterval(moveIntervalId)
-    moveIntervalId = 0
+    moveIntervalId = clearInterval(moveIntervalId as NodeJS.Timeout)
     started.value = false
 }
 
@@ -288,9 +180,115 @@ onBeforeMount(() => {
 onMounted(async () => {
     // 根据屏幕分辨率动态设置 gridSize
     const mapRect = await getBoundingClientRectBySelector('#mapContainer')
-    mapRect && (gridSize.value = [Math.floor(mapRect.width / map.value[0].length) - 1, Math.floor(mapRect.width / map.value.length) - 1]) // 这里统一取宽度进行计算，使 grid 为正方形
+    mapRect && (gridSize.value = [Math.floor(mapRect.width / map.value[0]!.length) - 1, Math.floor(mapRect.width / map.value.length) - 1]) // 这里统一取宽度进行计算，使 grid 为正方形
 })
 </script>
+
+<template>
+    <AlgoContainer>
+        <template #description>
+            <view class="detail">
+                <view
+                    class="detail__row"
+                    :style="{
+                        justifyContent: 'space-evenly',
+                    }"
+                >
+                    <view class="legend legend--normal">
+                        <icon />
+                        <text>
+                            {{ '正常' }}
+                        </text>
+                    </view>
+                    <view class="legend legend--collision">
+                        <icon />
+                        <text>
+                            {{ '碰撞' }}
+                        </text>
+                    </view>
+                </view>
+            </view>
+        </template>
+
+        <view
+            id="mapContainer"
+            class="mapContainer"
+        >
+            <view class="map">
+                <view
+                    v-for="(grids, y) in map"
+                    :key="`mapGrids-${y}`"
+                    class="mapGrids"
+                >
+                    <view
+                        v-for="({ type, count }, x) in grids"
+                        :key="`mapGrid-${x}`"
+                        :class="{
+                            mapGrid: true,
+                            'mapGrid--mMonster': count > 0,
+                            'mapGrid--mMonster--collision': count > 1,
+                        }"
+                        :style="{
+                            width: `${gridSize[0]}px`,
+                            height: `${gridSize[1]}px`,
+                            ...(type === GridType.Barrier && { backgroundColor: '#333' }),
+                        }"
+                    />
+                </view>
+            </view>
+        </view>
+
+        <template #control>
+            <view
+                class="buttons"
+                :style="{
+                    justifyContent: 'space-between',
+                }"
+            >
+                <button
+                    size="mini"
+                    :type="('default' as 'button')"
+                    @click="reset"
+                >
+                    {{ '重置' }}
+                </button>
+                <Dropdown
+                    :id="DropdownId"
+                    v-slot="{ toggle }"
+                    placement="top"
+                    :value="speed"
+                    :options="speeds"
+                    @change="changeSpeed"
+                >
+                    <button
+                        size="mini"
+                        :type="('default' as 'button')"
+                        :style="{ display: 'block' }"
+                        @click.stop="toggle"
+                    >
+                        {{ `倍速（${speeds.find(({ value }) => value === speed)?.label}）` }}
+                    </button>
+                </Dropdown>
+                <button
+                    v-if="!started"
+                    size="mini"
+                    :type="('primary' as 'button')"
+                    @click="start"
+                >
+                    {{ typeof started === 'boolean' ? '继续' : '开始' }}
+                </button>
+                <button
+                    v-if="started"
+                    size="mini"
+                    :type="('primary' as 'button')"
+                    @click="pause"
+                >
+                    {{ '暂停' }}
+                </button>
+            </view>
+        </template>
+    </AlgoContainer>
+</template>
 
 <style lang="scss" scoped>
 .detail {
