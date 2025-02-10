@@ -50,7 +50,7 @@ interface File { // 配置文件
     content: (path: string, newVersion: Version) => string,
 }
 
-const version: Version = { tuple: [1, 0, 1, -1], name: '1.0.1', code: 2 } // !important: 项目当前版本，由 createSelect.onSelected 执行修改操作，非特殊需要不建议手动修改
+const version: Version = { tuple: [1, 0, 2, -1], name: '1.0.2', code: 3 } // !important: 项目当前版本，由 createSelect.onSelected 执行修改操作，非特殊需要不建议手动修改
 const versionIds: VersionId[] = Object.values(VersionId)
 const preIds: PreId[] = Object.values(PreId)
 const versionCommands: VersionCommand[] = Object.values(VersionCommand)
