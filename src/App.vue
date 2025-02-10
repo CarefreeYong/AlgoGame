@@ -12,7 +12,7 @@ onHide(() => {
 </script>
 
 <style lang="scss">
-@import "@/static/iconfont/iconfont.css";
+@import '@/static/iconfont/iconfont.css';
 
 page {
     height: 100%;

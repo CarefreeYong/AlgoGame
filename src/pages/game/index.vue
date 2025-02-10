@@ -1,3 +1,7 @@
+<script lang="tsx" setup>
+import { accountInfo } from '@/data'
+</script>
+
 <template>
     <view class="content">
         <image
@@ -12,10 +16,6 @@
     </view>
 </template>
 
-<script lang="tsx" setup>
-import { accountInfo } from '@/data'
-</script>
-
 <style lang="scss" scoped>
 .content {
     display: flex;
@@ -25,12 +25,9 @@ import { accountInfo } from '@/data'
 }
 
 .logo {
-    height: 200rpx;
-    width: 200rpx;
-    margin-top: 200rpx;
-    margin-left: auto;
-    margin-right: auto;
-    margin-bottom: 50rpx;
+    height: 400rpx;
+    width: 400rpx;
+    margin: 200rpx auto 0rpx auto;
 }
 
 .text__area {

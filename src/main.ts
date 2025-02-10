@@ -1,5 +1,5 @@
 import { createSSRApp } from 'vue'
-import { accountInfo } from '@/data'
+import { accountInfo, pages } from '@/data'
 import App from '@/App.vue'
 
 export const app = createSSRApp(App)
@@ -8,9 +8,10 @@ export const app = createSSRApp(App)
 app.mixin({
     onShareAppMessage() { // 分享给好友
         const { length, [length - 1]: currentPage } = getCurrentPages()
+        const pageName = pages.find(({ path }) => path.includes(currentPage!.route as string))?.name || accountInfo.name
         return {
-            title: accountInfo.name,
-            path: currentPage.route,
+            title: pageName,
+            path: currentPage!.route as string,
             imageUrl: accountInfo.logo, // 默认：当前页面截图
         }
     },

@@ -2,8 +2,8 @@
     "name": "小A和小G的代码基地",
     "appid": "",
     "description": "算法可视化与应用",
-    "versionName": "1.0.0",
-    "versionCode": "100",
+    "versionName": "1.0.2",
+    "versionCode": "3",
     "vueVersion": "3",
     "debug": true,
     "uniStatistics": {

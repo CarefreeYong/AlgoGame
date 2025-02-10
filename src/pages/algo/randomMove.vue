@@ -1,3 +1,90 @@
+<script lang="tsx" setup>
+import type { Option, Size, Position, Grid as UnstableGrid, Bot } from '@/types'
+import { Direction, GridType } from '@/types'
+import { ref, computed, onBeforeMount, onMounted } from 'vue'
+import { speeds } from '@/data'
+import { getBoundingClientRectBySelector, getRandomString } from '@/utility'
+import AlgoContainer from '@/components/AlgoContainer.vue'
+import Dropdown from '@/components/Dropdown.vue'
+
+type Grid = Pick<UnstableGrid, 'position' | 'type'>
+
+const DropdownId: string = `Dropdown-${getRandomString()}`
+const mapSize: Size = [21, 21] // 地图尺寸，单位：网格数量
+const botPosition: Position = [Math.floor(mapSize[0] / 2), Math.floor(mapSize[1] / 2)]
+let moveIntervalId: NodeJS.Timeout | void = void 0
+
+const map = ref<Grid[][]>(Array.from(
+    { length: mapSize[1] },
+    (_grids, y) => Array.from(
+        { length: mapSize[0] },
+        (_grid, x) => ({
+            position: [x, y],
+            type: GridType.Space,
+        }),
+    ),
+))
+const gridSize = ref<Size>([0, 0]) // 网格尺寸，单位：px，根据屏幕分辨率动态计算
+const speed = ref<number>(1)
+const started = ref<boolean | null>(null)
+const bot = ref<Bot>({ id: 'Bot', position: botPosition, direction: Direction.Top }) // 电脑玩家
+const interval = computed<number>(() => Math.floor(200 / speed.value))
+
+const move = (): void => {
+    moveIntervalId = setInterval(() => {
+        const direction = Math.floor(Math.random() * 5)
+        const oldPosition = bot.value.position
+        const newPosition = [
+            bot.value.position, // 停留
+            [bot.value.position[0], Math.max(0, bot.value.position[1] - 1)], // 上
+            [Math.min(map.value[0]!.length - 1, bot.value.position[0] + 1), bot.value.position[1]], // 右
+            [bot.value.position[0], Math.min(map.value.length - 1, bot.value.position[1] + 1)], // 下
+            [Math.max(0, bot.value.position[0] - 1), bot.value.position[1]], // 左
+        ][direction] as Position
+        String(newPosition) !== String(oldPosition) && (bot.value.position = newPosition)
+        direction && (bot.value.direction = direction)
+    }, interval.value)
+}
+
+const reset = (initialize: boolean | MouseEvent): void => {
+    if (initialize !== true) {
+        moveIntervalId = clearInterval(moveIntervalId as NodeJS.Timeout)
+        speed.value = 1
+        started.value = null
+    }
+    bot.value.position = botPosition
+    bot.value.direction = Direction.Top
+}
+
+const changeSpeed = (value: Option['value']): void => {
+    if (value === speed.value) return
+    moveIntervalId = clearInterval(moveIntervalId as NodeJS.Timeout)
+    speed.value = value as number
+    started.value && move()
+}
+
+const start = (): void => {
+    move()
+    started.value = true
+}
+
+const pause = (): void => {
+    moveIntervalId = clearInterval(moveIntervalId as NodeJS.Timeout)
+    started.value = false
+}
+
+onBeforeMount(() => {
+    // 初始化地图
+    reset(true)
+})
+
+onMounted(async () => {
+    // 根据屏幕分辨率动态设置 gridSize
+    const mapRect = await getBoundingClientRectBySelector('#mapContainer')
+    mapRect && (gridSize.value = [Math.floor(mapRect.width / map.value[0]!.length) - 1, Math.floor(mapRect.width / map.value.length) - 1]) // 这里统一取宽度进行计算，使 grid 为正方形
+})
+</script>
+
 <template>
     <AlgoContainer>
         <template #description>
@@ -49,7 +136,7 @@
                         v-for="({ type }, x) in grids"
                         :key="`mapGrid-${x}`"
                         :class="{
-                            'mapGrid': true,
+                            mapGrid: true,
                             [`mapGrid--bot--${['none', 'top', 'right', 'bottom', 'left'][bot.direction]}`]: String([x, y]) === String(bot.position),
                         }"
                         :style="{
@@ -114,95 +201,6 @@
     </AlgoContainer>
 </template>
 
-<script lang="tsx" setup>
-import { Option, Size, Position, Direction, GridType, Grid as UnstableGrid, Bot } from '@/types'
-import { ref, computed, onBeforeMount, onMounted } from 'vue'
-import { speeds } from '@/data'
-import { getBoundingClientRectBySelector, getRandomString } from '@/utility'
-import AlgoContainer from '@/components/AlgoContainer.vue'
-import Dropdown from '@/components/Dropdown.vue'
-
-type Grid = Pick<UnstableGrid, 'position' | 'type'>
-
-const DropdownId = `Dropdown-${getRandomString()}`
-const mapSize: Size = [21, 21] // 地图尺寸，单位：网格数量
-const botPosition: Position = [Math.floor(mapSize[0] / 2), Math.floor(mapSize[1] / 2)]
-let moveIntervalId: number = 0
-
-const map = ref<Grid[][]>(
-    Array(mapSize[1]).fill(null).map(
-        (grids, y) => Array(mapSize[0]).fill(null).map(
-            (grid, x) => ({
-                position: [x, y],
-                type: GridType.Space,
-            }),
-        ),
-    ),
-)
-const gridSize = ref<Size>([0, 0]) // 网格尺寸，单位：px，根据屏幕分辨率动态计算
-const speed = ref<number>(1)
-const started = ref<boolean | null>(null)
-const bot = ref<Bot>({ id: 'Bot', position: botPosition, direction: Direction.Top }) // 电脑玩家
-const interval = computed<number>(() => Math.floor(200 / speed.value))
-
-const move = (): void => {
-    moveIntervalId = setInterval(() => {
-        const direction = Math.floor(Math.random() * 5)
-        const oldPosition = bot.value.position
-        const newPosition = [
-            bot.value.position, // 停留
-            [bot.value.position[0], Math.max(0, bot.value.position[1] - 1)], // 上
-            [Math.min(map.value[0].length - 1, bot.value.position[0] + 1), bot.value.position[1]], // 右
-            [bot.value.position[0], Math.min(map.value.length - 1, bot.value.position[1] + 1)], // 下
-            [Math.max(0, bot.value.position[0] - 1), bot.value.position[1]], // 左
-        ][direction] as Position
-        String(newPosition) !== String(oldPosition) && (bot.value.position = newPosition)
-        direction && (bot.value.direction = direction)
-    }, interval.value)
-}
-
-const reset = (initialize: boolean | MouseEvent): void => {
-    if (initialize !== true) {
-        clearInterval(moveIntervalId)
-        moveIntervalId = 0
-        speed.value = 1
-        started.value = null
-    }
-    bot.value.position = botPosition
-    bot.value.direction = Direction.Top
-}
-
-const changeSpeed = (value: Option['value']): void => {
-    if (value === speed.value) return
-    clearInterval(moveIntervalId)
-    moveIntervalId = 0
-    speed.value = value as number
-    started.value && move()
-}
-
-const start = (): void => {
-    move()
-    started.value = true
-}
-
-const pause = (): void => {
-    clearInterval(moveIntervalId)
-    moveIntervalId = 0
-    started.value = false
-}
-
-onBeforeMount(() => {
-    // 初始化地图
-    reset(true)
-})
-
-onMounted(async () => {
-    // 根据屏幕分辨率动态设置 gridSize
-    const mapRect = await getBoundingClientRectBySelector('#mapContainer')
-    mapRect && (gridSize.value = [Math.floor(mapRect.width / map.value[0].length) - 1, Math.floor(mapRect.width / map.value.length) - 1]) // 这里统一取宽度进行计算，使 grid 为正方形
-})
-</script>
-
 <style lang="scss" scoped>
 .detail {
     display: flex;
@@ -254,7 +252,7 @@ onMounted(async () => {
     &.mapGrid--bot--right::before,
     &.mapGrid--bot--bottom::before,
     &.mapGrid--bot--left::before {
-        content: "";
+        content: '';
         display: block;
         width: 100%;
         height: 100%;

@@ -1,3 +1,109 @@
+<script lang="tsx" setup>
+import type Component from '*.vue'
+import type { Option, Size, Position, PositionStr, Grid as UnstableGrid } from '@/types'
+import { GridType } from '@/types'
+import { ref, computed, onBeforeMount, onMounted } from 'vue'
+import { speeds } from '@/data'
+import { getBoundingClientRectBySelector, getRandomString, getRandomIntInclusive } from '@/utility'
+import AlgoContainer from '@/components/AlgoContainer.vue'
+import Dropdown from '@/components/Dropdown.vue'
+
+type Grid = Pick<UnstableGrid, 'position' | 'type'>
+
+const DropdownId: string = `Dropdown-${getRandomString()}`
+const mapSize: Size = [21, 21] // 地图尺寸，单位：网格数量
+let createBarriersIntervalId: NodeJS.Timeout | void = void 0
+
+const dialogRef = ref<InstanceType<typeof Component>>({ confirm: () => {} })
+const map = ref<Grid[][]>(Array.from(
+    { length: mapSize[1] },
+    (_grids, y) => Array.from(
+        { length: mapSize[0] },
+        (_grid, x) => ({
+            position: [x, y],
+            type: GridType.Space,
+        }),
+    ),
+))
+const gridSize = ref<Size>([0, 0]) // 网格尺寸，单位：px，根据屏幕分辨率动态计算
+const speed = ref<number>(1)
+const started = ref<boolean | null>(null)
+const barrierTotal = ref<number>(80) // 障碍物数量
+const barrierSet = ref<Set<PositionStr>>(new Set()) // 障碍物集
+const interval = computed<number>(() => Math.floor(200 / speed.value))
+
+const restrictBarrierTotal = (event: FocusEvent): void => {
+    const { value }: { value: unknown } = event.target as HTMLInputElement
+    barrierTotal.value = Number.isNaN(Number(value)) ? 80 : Math.max(1, Math.min(200, Math.floor(value as number)))
+}
+
+const createBarriers = (): void => {
+    createBarriersIntervalId = setInterval(() => {
+        if (barrierSet.value.size === barrierTotal.value) {
+            createBarriersIntervalId = clearInterval(createBarriersIntervalId as NodeJS.Timeout)
+            dialogRef.value.open()
+            return
+        }
+
+        const barrierPosition = (() => {
+            let tempBarrierPosition = [
+                getRandomIntInclusive(0, map.value[0]!.length - 1),
+                getRandomIntInclusive(0, map.value.length - 1),
+            ]
+            while (barrierSet.value.has(String(tempBarrierPosition) as PositionStr)) {
+                tempBarrierPosition = [
+                    getRandomIntInclusive(0, map.value[0]!.length - 1),
+                    getRandomIntInclusive(0, map.value.length - 1),
+                ]
+            }
+            return tempBarrierPosition
+        })() as Position
+
+        barrierSet.value.add(String(barrierPosition) as PositionStr)
+        map.value[barrierPosition[1]]![barrierPosition[0]]!.type = GridType.Barrier
+    }, interval.value)
+}
+
+const reset = (initialize: boolean | MouseEvent): void => {
+    if (initialize !== true) {
+        createBarriersIntervalId = clearInterval(createBarriersIntervalId as NodeJS.Timeout)
+        map.value.forEach((grids) => grids.forEach((grid) => (grid.type = GridType.Space)))
+        speed.value = 1
+        started.value = null
+        barrierTotal.value = 80
+        barrierSet.value.clear()
+    }
+}
+
+const changeSpeed = (value: Option['value']): void => {
+    if (value === speed.value) return
+    createBarriersIntervalId = clearInterval(createBarriersIntervalId as NodeJS.Timeout)
+    speed.value = value as number
+    started.value && createBarriers()
+}
+
+const start = (): void => {
+    createBarriers()
+    started.value = true
+}
+
+const pause = (): void => {
+    createBarriersIntervalId = clearInterval(createBarriersIntervalId as NodeJS.Timeout)
+    started.value = false
+}
+
+onBeforeMount(() => {
+    // 初始化地图
+    reset(true)
+})
+
+onMounted(async () => {
+    // 根据屏幕分辨率动态设置 gridSize
+    const mapRect = await getBoundingClientRectBySelector('#mapContainer')
+    mapRect && (gridSize.value = [Math.floor(mapRect.width / map.value[0]!.length) - 1, Math.floor(mapRect.width / map.value.length) - 1]) // 这里统一取宽度进行计算，使 grid 为正方形
+})
+</script>
+
 <template>
     <AlgoContainer>
         <template #description>
@@ -32,7 +138,7 @@
                         v-for="({ type }, x) in grids"
                         :key="`mapGrid-${x}`"
                         :class="{
-                            'mapGrid': true,
+                            mapGrid: true,
                         }"
                         :style="{
                             width: `${gridSize[0]}px`,
@@ -127,115 +233,6 @@
         />
     </uni-popup>
 </template>
-
-<script lang="tsx" setup>
-import type Component from '*.vue'
-import { Option, Size, Position, PositionStr, GridType, Grid as UnstableGrid } from '@/types'
-import { ref, computed, onBeforeMount, onMounted } from 'vue'
-import { speeds } from '@/data'
-import { getBoundingClientRectBySelector, getRandomString, getRandomIntInclusive } from '@/utility'
-import AlgoContainer from '@/components/AlgoContainer.vue'
-import Dropdown from '@/components/Dropdown.vue'
-
-type Grid = Pick<UnstableGrid, 'position' | 'type'>
-
-const DropdownId = `Dropdown-${getRandomString()}`
-const mapSize: Size = [21, 21] // 地图尺寸，单位：网格数量
-let createBarriersIntervalId: number = 0
-
-const dialogRef = ref<InstanceType<typeof Component>>({ confirm: () => {} })
-const map = ref<Grid[][]>(
-    Array(mapSize[1]).fill(null).map(
-        (grids, y) => Array(mapSize[0]).fill(null).map(
-            (grid, x) => ({
-                position: [x, y],
-                type: GridType.Space,
-            }),
-        ),
-    ),
-)
-const gridSize = ref<Size>([0, 0]) // 网格尺寸，单位：px，根据屏幕分辨率动态计算
-const speed = ref<number>(1)
-const started = ref<boolean | null>(null)
-const barrierTotal = ref<number>(80) // 障碍物数量
-const barrierSet = ref<Set<PositionStr>>(new Set()) // 障碍物集
-const interval = computed<number>(() => Math.floor(200 / speed.value))
-
-const restrictBarrierTotal = (event: FocusEvent): void => {
-    const { value }: { value: unknown } = event.target as HTMLInputElement
-    barrierTotal.value = isNaN(value as number) ? 80 : Math.max(1, Math.min(200, Math.floor(value as number)))
-}
-
-const createBarriers = (): void => {
-    createBarriersIntervalId = setInterval(() => {
-        if (barrierSet.value.size === barrierTotal.value) {
-            clearInterval(createBarriersIntervalId)
-            createBarriersIntervalId = 0
-            dialogRef.value.open()
-            return
-        }
-
-        const barrierPosition: Position = (() => {
-            let tempBarrierPosition = [
-                getRandomIntInclusive(0, map.value[0].length - 1),
-                getRandomIntInclusive(0, map.value.length - 1),
-            ]
-            while (barrierSet.value.has(String(tempBarrierPosition) as PositionStr)) {
-                tempBarrierPosition = [
-                    getRandomIntInclusive(0, map.value[0].length - 1),
-                    getRandomIntInclusive(0, map.value.length - 1),
-                ]
-            }
-            return tempBarrierPosition as Position
-        })()
-
-        barrierSet.value.add(String(barrierPosition) as PositionStr)
-        map.value[barrierPosition[1]][barrierPosition[0]].type = GridType.Barrier
-    }, interval.value)
-}
-
-const reset = (initialize: boolean | MouseEvent): void => {
-    if (initialize !== true) {
-        clearInterval(createBarriersIntervalId)
-        createBarriersIntervalId = 0
-        map.value.forEach((grids) => grids.forEach((grid) => (grid.type = GridType.Space)))
-        speed.value = 1
-        started.value = null
-        barrierTotal.value = 80
-        barrierSet.value.clear()
-    }
-}
-
-const changeSpeed = (value: Option['value']): void => {
-    if (value === speed.value) return
-    clearInterval(createBarriersIntervalId)
-    createBarriersIntervalId = 0
-    speed.value = value as number
-    started.value && createBarriers()
-}
-
-const start = (): void => {
-    createBarriers()
-    started.value = true
-}
-
-const pause = (): void => {
-    clearInterval(createBarriersIntervalId)
-    createBarriersIntervalId = 0
-    started.value = false
-}
-
-onBeforeMount(() => {
-    // 初始化地图
-    reset(true)
-})
-
-onMounted(async () => {
-    // 根据屏幕分辨率动态设置 gridSize
-    const mapRect = await getBoundingClientRectBySelector('#mapContainer')
-    mapRect && (gridSize.value = [Math.floor(mapRect.width / map.value[0].length) - 1, Math.floor(mapRect.width / map.value.length) - 1]) // 这里统一取宽度进行计算，使 grid 为正方形
-})
-</script>
 
 <style lang="scss" scoped>
 .detail {

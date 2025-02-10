@@ -1,3 +1,153 @@
+<script lang="tsx" setup>
+import type Component from '*.vue'
+import type { Option, Size, Position, PositionStr, Grid as UnstableGrid } from '@/types'
+import { GridType } from '@/types'
+import { ref, triggerRef, computed, onBeforeMount, onMounted } from 'vue'
+import { speeds } from '@/data'
+import { getBoundingClientRectBySelector, getRandomString, shuffleArray } from '@/utility'
+import AlgoContainer from '@/components/AlgoContainer.vue'
+import Dropdown from '@/components/Dropdown.vue'
+
+type Grid = Pick<UnstableGrid, 'position' | 'type'>
+type Wall = [Position, Position, Position]
+
+const DropdownId: string = `Dropdown-${getRandomString()}`
+const mapSize: Size = [21, 21] // 地图尺寸，单位：网格数量
+let createMazeIntervalId: NodeJS.Timeout | void = void 0
+
+const dialogRef = ref<InstanceType<typeof Component>>({ confirm: () => {} })
+const map = ref<Grid[][]>(Array.from(
+    { length: mapSize[1] },
+    (_grids, y) => Array.from(
+        { length: mapSize[0] },
+        (_grid, x) => ({
+            position: [x, y],
+            type: GridType.Space,
+        }),
+    ),
+))
+const gridSize = ref<Size>([0, 0]) // 网格尺寸，单位：px，根据屏幕分辨率动态计算
+const speed = ref<number>(1)
+const started = ref<boolean | null>(null)
+const step = ref<number>(1) // 生成迷宫进程的当前阶段
+const walls = ref<Wall[]>([]) // 墙体列表（每两个房间之间的墙体）
+const currentWall = ref<{ index: number, areRoomsInSameArea: boolean }>({ index: 0, areRoomsInSameArea: false }) // 当前墙体，index（索引）、areRoomsInSameArea（两侧房间是否在同一区域）
+const roomToAreaMap = ref<Map<PositionStr, number>>(new Map()) // 房间与区域的映射表（已连通的多个房间统一打上相同的区域 id）
+const interval = computed<number>(() => Math.floor(200 / speed.value))
+
+const createMaze = (): void => { // 使用 Kruskal 算法生成迷宫
+    createMazeIntervalId = setInterval(() => {
+        switch (step.value) {
+            case 1: {
+                // 初始化迷宫
+                map.value.forEach((grids, y) => grids.forEach((grid, x) => (grid.type = x % 2 === 0 && y % 2 === 0 ? GridType.Space : GridType.Barrier))) // [x, y] 均为偶数时设为 GridType.Space（表示房间），否则设为 GridType.Barrier（表示墙体）
+
+                step.value++
+                break
+            }
+            case 2:
+            case 3: { // 设置两帧空白帧
+                step.value++
+                break
+            }
+            case 4: {
+                // 初始化房间与区域的映射表
+                let areaId = 0
+                map.value.forEach((grids, y) => grids.forEach((grid, x) => grid.type === GridType.Space && roomToAreaMap.value.set(String([x, y]) as PositionStr, ++areaId)))
+
+                step.value++
+                break
+            }
+            case 5:
+            case 6: { // 设置两帧空白帧
+                step.value++
+                break
+            }
+            case 7: {
+                // 获取墙体列表
+                if (!walls.value.length) {
+                    map.value.forEach((grids, y) => grids.forEach((_grid, x) => {
+                        x % 2 !== 0 && y % 2 === 0 && walls.value.push([[x, y], [x - 1, y], [x + 1, y]]) // 水平方向上的墙体取其左右房间
+                        x % 2 === 0 && y % 2 !== 0 && walls.value.push([[x, y], [x, y - 1], [x, y + 1]]) // 垂直方向上的墙体取其上下房间
+                    }))
+                    walls.value = shuffleArray<Wall[]>(walls.value) // 打乱墙体列表
+                }
+
+                // 判断是否需要拆除墙体
+                const [wall, room1, room2] = walls.value[currentWall.value.index++] as Wall
+                currentWall.value.areRoomsInSameArea = roomToAreaMap.value.get(String(room1) as PositionStr) === roomToAreaMap.value.get(String(room2) as PositionStr)
+                if (currentWall.value.areRoomsInSameArea) { // 两个房间在相同区域时，有 10% 的概率会拆除当前墙体，使迷宫产生环结构，增加迷宫的复杂性
+                    Math.random() < 0.1 && (
+                        roomToAreaMap.value.set(String(wall) as PositionStr, roomToAreaMap.value.get(String(room1) as PositionStr)!),
+                        map.value[wall[1]]![wall[0]]!.type = GridType.Space
+                    )
+                } else { // 两个房间在不同区域时拆除当前墙体
+                    const areaId = roomToAreaMap.value.get(String(room2) as PositionStr)
+                    roomToAreaMap.value.forEach((value, key, map) => value === areaId && map.set(key, map.get(String(room1) as PositionStr)!)) // 给区域 2 的所有房间打上区域 1 的 id
+                    roomToAreaMap.value.set(String(wall) as PositionStr, roomToAreaMap.value.get(String(room1) as PositionStr)!)
+                    map.value[wall[1]]![wall[0]]!.type = GridType.Space
+                }
+
+                currentWall.value.index === walls.value.length - 1 && step.value++
+                break
+            }
+            default: {
+                createMazeIntervalId = clearInterval(createMazeIntervalId as NodeJS.Timeout)
+                dialogRef.value.confirm = () => {
+                    walls.value = []
+                    currentWall.value = { index: 0, areRoomsInSameArea: false }
+                    roomToAreaMap.value.clear()
+                }
+                dialogRef.value.open()
+                triggerRef(dialogRef)
+                break
+            }
+        }
+    }, interval.value)
+}
+
+const reset = (initialize: boolean | MouseEvent): void => {
+    if (initialize !== true) {
+        createMazeIntervalId = clearInterval(createMazeIntervalId as NodeJS.Timeout)
+        map.value.forEach((grids) => grids.forEach((grid) => (grid.type = GridType.Space)))
+        speed.value = 1
+        started.value = null
+        step.value = 1
+        walls.value = []
+        currentWall.value = { index: 0, areRoomsInSameArea: false }
+        roomToAreaMap.value.clear()
+    }
+}
+
+const changeSpeed = (value: Option['value']): void => {
+    if (value === speed.value) return
+    createMazeIntervalId = clearInterval(createMazeIntervalId as NodeJS.Timeout)
+    speed.value = value as number
+    started.value && createMaze()
+}
+
+const start = (): void => {
+    createMaze()
+    started.value = true
+}
+
+const pause = (): void => {
+    createMazeIntervalId = clearInterval(createMazeIntervalId as NodeJS.Timeout)
+    started.value = false
+}
+
+onBeforeMount(() => {
+    // 初始化地图
+    reset(true)
+})
+
+onMounted(async () => {
+    // 根据屏幕分辨率动态设置 gridSize
+    const mapRect = await getBoundingClientRectBySelector('#mapContainer')
+    mapRect && (gridSize.value = [Math.floor(mapRect.width / map.value[0]!.length) - 1, Math.floor(mapRect.width / map.value.length) - 1]) // 这里统一取宽度进行计算，使 grid 为正方形
+})
+</script>
+
 <template>
     <AlgoContainer>
         <template #description>
@@ -59,8 +209,8 @@
                         v-for="({ type }, x) in grids"
                         :key="`mapGrid-${x}`"
                         :class="{
-                            'mapGrid': true,
-                            [`mapGrid--${['demolishing', 'randomDemolishing'][Number(currentWall.areRoomsInSameArea)]}`]: walls.length && String([x, y]) === String(walls[currentWall.index][0]),
+                            mapGrid: true,
+                            [`mapGrid--${['demolishing', 'randomDemolishing'][Number(currentWall.areRoomsInSameArea)]}`]: walls.length && String([x, y]) === String(walls[currentWall.index]![0]),
                         }"
                         :style="{
                             width: `${gridSize[0]}px`,
@@ -71,7 +221,7 @@
                             textAlign: 'center',
                             ...(type === GridType.Barrier && { backgroundColor: '#333' }),
                         }"
-                        v-text="roomAreaMap.get(String([x, y]) as PositionStr)"
+                        v-text="roomToAreaMap.get(String([x, y]) as PositionStr)"
                     />
                 </view>
             </view>
@@ -144,159 +294,6 @@
     </uni-popup>
 </template>
 
-<script lang="tsx" setup>
-import type Component from '*.vue'
-import { Option, Size, Position, PositionStr, GridType, Grid as UnstableGrid } from '@/types'
-import { ref, triggerRef, computed, onBeforeMount, onMounted } from 'vue'
-import { speeds } from '@/data'
-import { getBoundingClientRectBySelector, getRandomString, shuffleArray } from '@/utility'
-import AlgoContainer from '@/components/AlgoContainer.vue'
-import Dropdown from '@/components/Dropdown.vue'
-
-type Grid = Pick<UnstableGrid, 'position' | 'type'>
-type Wall = [Position, Position, Position]
-
-const DropdownId = `Dropdown-${getRandomString()}`
-const mapSize: Size = [21, 21] // 地图尺寸，单位：网格数量
-let createMazeIntervalId: number = 0
-
-const dialogRef = ref<InstanceType<typeof Component>>({ confirm: () => {} })
-const map = ref<Grid[][]>(
-    Array(mapSize[1]).fill(null).map(
-        (grids, y) => Array(mapSize[0]).fill(null).map(
-            (grid, x) => ({
-                position: [x, y],
-                type: GridType.Space,
-            }),
-        ),
-    ),
-)
-const gridSize = ref<Size>([0, 0]) // 网格尺寸，单位：px，根据屏幕分辨率动态计算
-const speed = ref<number>(1)
-const started = ref<boolean | null>(null)
-const step = ref<number>(1) // 生成迷宫进程的当前阶段
-const walls = ref<Wall[]>([]) // 墙体列表（每两个房间之间的墙体）
-const currentWall = ref<{ index: number, areRoomsInSameArea: boolean }>({ index: 0, areRoomsInSameArea: false }) // 当前墙体，index（索引）、areRoomsInSameArea（两侧房间是否在同一区域）
-const roomAreaMap = ref<Map<PositionStr, number>>(new Map()) // 房间与区域的映射表（已连通的多个房间统一打上相同的区域 id）
-const interval = computed<number>(() => Math.floor(200 / speed.value))
-
-const createMaze = (): void => { // 使用 Kruskal 算法生成迷宫
-    createMazeIntervalId = setInterval(() => {
-        switch (step.value) {
-            case 1: {
-                // 初始化迷宫
-                map.value.forEach((grids, y) => grids.forEach((grid, x) => (grid.type = x % 2 === 0 && y % 2 === 0 ? GridType.Space : GridType.Barrier ))) // [x, y] 均为偶数时设为 GridType.Space（表示房间），否则设为 GridType.Barrier（表示墙体）
-
-                step.value++
-                break
-            }
-            case 2:
-            case 3: { // 设置两帧空白帧
-                step.value++
-                break
-            }
-            case 4: {
-                // 初始化房间与区域的映射表
-                let areaId = 0
-                map.value.forEach((grids, y) => grids.forEach((grid, x) => grid.type === GridType.Space && roomAreaMap.value.set(String([x, y]) as PositionStr, ++areaId)))
-
-                step.value++
-                break
-            }
-            case 5:
-            case 6: { // 设置两帧空白帧
-                step.value++
-                break
-            }
-            case 7: {
-                // 获取墙体列表
-                if (!walls.value.length) {
-                    map.value.forEach((grids, y) => grids.forEach((grid, x) => {
-                        x % 2 !== 0 && y % 2 === 0 && walls.value.push([[x, y], [x - 1, y], [x + 1, y]]) // 水平方向上的墙体取其左右房间
-                        x % 2 === 0 && y % 2 !== 0 && walls.value.push([[x, y], [x, y - 1], [x, y + 1]]) // 垂直方向上的墙体取其上下房间
-                    }))
-                    walls.value = shuffleArray(walls.value) // 打乱墙体列表
-                }
-
-                // 判断是否需要拆除墙体
-                const [wall, room1, room2] = walls.value[currentWall.value.index++]
-                currentWall.value.areRoomsInSameArea = roomAreaMap.value.get(String(room1) as PositionStr) === roomAreaMap.value.get(String(room2) as PositionStr)
-                if (currentWall.value.areRoomsInSameArea) { // 两个房间在相同区域时，有 10% 的概率会拆除当前墙体，使迷宫产生环结构，增加迷宫的复杂性
-                    Math.random() < 0.1 && (
-                        roomAreaMap.value.set(String(wall) as PositionStr, roomAreaMap.value.get(String(room1) as PositionStr)!),
-                        map.value[wall[1]][wall[0]].type = GridType.Space
-                    )
-                } else { // 两个房间在不同区域时拆除当前墙体
-                    const areaId = roomAreaMap.value.get(String(room2) as PositionStr)
-                    roomAreaMap.value.forEach((value, key, map) => value === areaId && map.set(key, map.get(String(room1) as PositionStr)!)) // 给区域 2 的所有房间打上区域 1 的 id
-                    roomAreaMap.value.set(String(wall) as PositionStr, roomAreaMap.value.get(String(room1) as PositionStr)!)
-                    map.value[wall[1]][wall[0]].type = GridType.Space
-                }
-
-                currentWall.value.index === walls.value.length - 1 && step.value++
-                break
-            }
-            default: {
-                clearInterval(createMazeIntervalId)
-                createMazeIntervalId = 0
-                dialogRef.value.confirm = () => {
-                    walls.value = []
-                    currentWall.value = { index: 0, areRoomsInSameArea: false }
-                    roomAreaMap.value.clear()
-                }
-                dialogRef.value.open()
-                triggerRef(dialogRef)
-                break
-            }
-        }
-    }, interval.value)
-}
-
-const reset = (initialize: boolean | MouseEvent): void => {
-    if (initialize !== true) {
-        clearInterval(createMazeIntervalId)
-        createMazeIntervalId = 0
-        map.value.forEach((grids) => grids.forEach((grid) => (grid.type = GridType.Space)))
-        speed.value = 1
-        started.value = null
-        step.value = 1
-        walls.value = []
-        currentWall.value = { index: 0, areRoomsInSameArea: false }
-        roomAreaMap.value.clear()
-    }
-}
-
-const changeSpeed = (value: Option['value']): void => {
-    if (value === speed.value) return
-    clearInterval(createMazeIntervalId)
-    createMazeIntervalId = 0
-    speed.value = value as number
-    started.value && createMaze()
-}
-
-const start = (): void => {
-    createMaze()
-    started.value = true
-}
-
-const pause = (): void => {
-    clearInterval(createMazeIntervalId)
-    createMazeIntervalId = 0
-    started.value = false
-}
-
-onBeforeMount(() => {
-    // 初始化地图
-    reset(true)
-})
-
-onMounted(async () => {
-    // 根据屏幕分辨率动态设置 gridSize
-    const mapRect = await getBoundingClientRectBySelector('#mapContainer')
-    mapRect && (gridSize.value = [Math.floor(mapRect.width / map.value[0].length) - 1, Math.floor(mapRect.width / map.value.length) - 1]) // 这里统一取宽度进行计算，使 grid 为正方形
-})
-</script>
-
 <style lang="scss" scoped>
 .detail {
     display: flex;
@@ -331,7 +328,6 @@ onMounted(async () => {
                 box-sizing: border-box;
                 background-color: #333;
                 border: 4rpx solid $uni-color-warning;
-
             }
         }
         icon {
@@ -373,7 +369,7 @@ onMounted(async () => {
     background-color: #fff;
     &.mapGrid--demolishing::before,
     &.mapGrid--randomDemolishing::before {
-        content: "";
+        content: '';
         display: block;
         position: relative;
         width: 100%;
